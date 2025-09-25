@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neverwinter Nights Character Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .file-controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .file-controls input[type="file"] {
+            display: none;
+        }
+        
+        .file-controls button {
+            background-color: #4a4a4a;
+            color: #ffd700;
+            border: 2px solid #ffd700;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .file-controls button:hover {
+            background-color: #5a5a5a;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #444;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #3a3a3a;
+            border: 1px solid #444;
+            border-bottom: none;
+            margin-right: 2px;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .tab.active {
+            background-color: #4a4a4a;
+            color: #ffd700;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            background-color: #3a3a3a;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+        
+        .form-group h3 {
+            color: #ffd700;
+            margin-top: 0;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+        
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .form-row label {
+            flex: 1;
+            font-weight: bold;
+            color: #ccc;
+        }
+        
+        .form-row input, .form-row select {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #666;
+            border-radius: 3px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+        
+        .form-row input:focus, .form-row select:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stat-item label {
+            flex: 1;
+            font-weight: bold;
+        }
+        
+        .stat-item input {
+            width: 60px;
+            text-align: center;
+        }
+        
+        .equipment-list, .feat-list, .skill-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #2a2a2a;
+        }
+        
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            margin-bottom: 5px;
+            background-color: #3a3a3a;
+            border-radius: 3px;
+        }
+        
+        .list-item input {
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        .list-item button {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .add-button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .add-button:hover {
+            background-color: #45a049;
+        }
+        
+        .appearance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .save-status {
+            text-align: center;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .save-status.success {
+            background-color: #2e7d32;
+            color: white;
+            display: block;
+        }
+        
+        .save-status.error {
+            background-color: #d32f2f;
+            color: white;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Neverwinter Nights Character Editor</h1>
+        
+        <div class="file-controls">
+            <input type="file" id="fileInput" accept=".json">
+            <button onclick="document.getElementById('fileInput').click()">Load JSON File</button>
+            <button onclick="saveJSON()">Save JSON File</button>
+            <button onclick="createNewCharacter()">New Character</button>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('basic')">Basic Info</div>
+            <div class="tab" onclick="switchTab('stats')">Stats</div>
+            <div class="tab" onclick="switchTab('appearance')">Appearance</div>
+            <div class="tab" onclick="switchTab('equipment')">Equipment</div>
+            <div class="tab" onclick="switchTab('feats')">Feats</div>
+            <div class="tab" onclick="switchTab('skills')">Skills</div>
+            <div class="tab" onclick="switchTab('class')">Class</div>
+        </div>
+        
+        <div id="basic" class="tab-content active">
+            <div class="form-grid">
+                <div class="form-group">
+                    <h3>Identity</h3>
+                    <div class="form-row">
+                        <label>First Name:</label>
+                        <input type="text" id="FirstName" placeholder="Character first name">
+                    </div>
+                    <div class="form-row">
+                        <label>Last Name:</label>
+                        <input type="text" id="LastName" placeholder="Character last name">
+                    </div>
+                    <div class="form-row">
+                        <label>Display Name:</label>
+                        <input type="text" id="DisplayName" placeholder="Display name">
+                    </div>
+                    <div class="form-row">
+                        <label>Description:</label>
+                        <input type="text" id="Description" placeholder="Character description">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Basic Stats</h3>
+                    <div class="form-row">
+                        <label>Race:</label>
+                        <input type="number" id="Race" min="0" max="255">
+                    </div>
+                    <div class="form-row">
+                        <label>Gender:</label>
+                        <select id="Gender">
+                            <option value="0">Male</option>
+                            <option value="1">Female</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Age:</label>
+                        <input type="number" id="Age" min="0" max="999">
+                    </div>
+                    <div class="form-row">
+                        <label>Deity:</label>
+                        <input type="text" id="Deity" placeholder="Deity name">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Alignment</h3>
+                    <div class="form-row">
+                        <label>Good/Evil (0-100):</label>
+                        <input type="range" id="GoodEvil" min="0" max="100" oninput="updateAlignmentDisplay('GoodEvil')">
+                        <span id="GoodEvilValue">50</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Lawful/Chaotic (0-100):</label>
+                        <input type="range" id="LawfulChaotic" min="0" max="100" oninput="updateAlignmentDisplay('LawfulChaotic')">
+                        <span id="LawfulChaoticValue">50</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Vitals</h3>
+                    <div class="form-row">
+                        <label>Hit Points:</label>
+                        <input type="number" id="HitPoints" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label>Max Hit Points:</label>
+                        <input type="number" id="MaxHitPoints" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label>Current Hit Points:</label>
+                        <input type="number" id="CurrentHitPoints" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label>Armor Class:</label>
+                        <input type="number" id="ArmorClass">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Progress</h3>
+                    <div class="form-row">
+                        <label>Experience:</label>
+                        <input type="number" id="Experience" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label>Gold:</label>
+                        <input type="number" id="Gold" min="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="stats" class="tab-content">
+            <div class="form-grid">
+                <div class="form-group">
+                    <h3>Ability Scores</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <label>Strength:</label>
+                            <input type="number" id="Str" min="1" max="50">
+                        </div>
+                        <div class="stat-item">
+                            <label>Dexterity:</label>
+                            <input type="number" id="Dex" min="1" max="50">
+                        </div>
+                        <div class="stat-item">
+                            <label>Constitution:</label>
+                            <input type="number" id="Con" min="1" max="50">
+                        </div>
+                        <div class="stat-item">
+                            <label>Intelligence:</label>
+                            <input type="number" id="Int" min="1" max="50">
+                        </div>
+                        <div class="stat-item">
+                            <label>Wisdom:</label>
+                            <input type="number" id="Wis" min="1" max="50">
+                        </div>
+                        <div class="stat-item">
+                            <label>Charisma:</label>
+                            <input type="number" id="Cha" min="1" max="50">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Saving Throws</h3>
+                    <div class="form-row">
+                        <label>Fortitude Save:</label>
+                        <input type="number" id="FortSaveThrow">
+                    </div>
+                    <div class="form-row">
+                        <label>Reflex Save:</label>
+                        <input type="number" id="RefSaveThrow">
+                    </div>
+                    <div class="form-row">
+                        <label>Will Save:</label>
+                        <input type="number" id="WillSaveThrow">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Combat</h3>
+                    <div class="form-row">
+                        <label>Base Attack Bonus:</label>
+                        <input type="number" id="BaseAttackBonus">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="appearance" class="tab-content">
+            <div class="form-grid">
+                <div class="form-group">
+                    <h3>Appearance</h3>
+                    <div class="appearance-grid">
+                        <div class="form-row">
+                            <label>Appearance Type:</label>
+                            <input type="number" id="Appearance_Type">
+                        </div>
+                        <div class="form-row">
+                            <label>Head Appearance:</label>
+                            <input type="number" id="Appearance_Head">
+                        </div>
+                        <div class="form-row">
+                            <label>Phenotype:</label>
+                            <input type="number" id="Phenotype">
+                        </div>
+                        <div class="form-row">
+                            <label>Portrait:</label>
+                            <input type="text" id="Portrait" placeholder="Portrait resref">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Colors</h3>
+                    <div class="appearance-grid">
+                        <div class="form-row">
+                            <label>Hair Color:</label>
+                            <input type="number" id="Color_Hair" min="0" max="255">
+                        </div>
+                        <div class="form-row">
+                            <label>Skin Color:</label>
+                            <input type="number" id="Color_Skin" min="0" max="255">
+                        </div>
+                        <div class="form-row">
+                            <label>Tattoo 1:</label>
+                            <input type="number" id="Color_Tattoo1" min="0" max="255">
+                        </div>
+                        <div class="form-row">
+                            <label>Tattoo 2:</label>
+                            <input type="number" id="Color_Tattoo2" min="0" max="255">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Body Parts</h3>
+                    <div class="appearance-grid">
+                        <div class="form-row">
+                            <label>Neck:</label>
+                            <input type="number" id="BodyPart_Neck">
+                        </div>
+                        <div class="form-row">
+                            <label>Torso:</label>
+                            <input type="number" id="BodyPart_Torso">
+                        </div>
+                        <div class="form-row">
+                            <label>Belt:</label>
+                            <input type="number" id="BodyPart_Belt">
+                        </div>
+                        <div class="form-row">
+                            <label>Pelvis:</label>
+                            <input type="number" id="BodyPart_Pelvis">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Bicep:</label>
+                            <input type="number" id="BodyPart_LBicep">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Forearm:</label>
+                            <input type="number" id="BodyPart_LFArm">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Foot:</label>
+                            <input type="number" id="BodyPart_LFoot">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Hand:</label>
+                            <input type="number" id="BodyPart_LHand">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Shin:</label>
+                            <input type="number" id="BodyPart_LShin">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Shoulder:</label>
+                            <input type="number" id="BodyPart_LShoul">
+                        </div>
+                        <div class="form-row">
+                            <label>Left Thigh:</label>
+                            <input type="number" id="BodyPart_LThigh">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Bicep:</label>
+                            <input type="number" id="BodyPart_RBicep">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Forearm:</label>
+                            <input type="number" id="BodyPart_RFArm">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Hand:</label>
+                            <input type="number" id="BodyPart_RHand">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Shin:</label>
+                            <input type="number" id="BodyPart_RShin">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Shoulder:</label>
+                            <input type="number" id="BodyPart_RShoul">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Thigh:</label>
+                            <input type="number" id="BodyPart_RThigh">
+                        </div>
+                        <div class="form-row">
+                            <label>Right Foot:</label>
+                            <input type="number" id="BodyPart_RFoot">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Additional Settings</h3>
+                    <div class="appearance-grid">
+                        <div class="form-row">
+                            <label>Sound Set File:</label>
+                            <input type="number" id="SoundSetFile">
+                        </div>
+                        <div class="form-row">
+                            <label>Conversation:</label>
+                            <input type="text" id="Conversation" placeholder="Conversation resref">
+                        </div>
+                        <div class="form-row">
+                            <label>Subrace:</label>
+                            <input type="text" id="Subrace" placeholder="Subrace name">
+                        </div>
+                        <div class="form-row">
+                            <label>Starting Package:</label>
+                            <input type="number" id="StartingPackage">
+                        </div>
+                        <div class="form-row">
+                            <label>Multi-class Level Up In:</label>
+                            <input type="number" id="MClassLevUpIn">
+                        </div>
+                        <div class="form-row">
+                            <label>Pregame Current HP:</label>
+                            <input type="number" id="PregameCurrent">
+                        </div>
+                        <div class="form-row">
+                            <label>Tail New:</label>
+                            <input type="number" id="Tail_New">
+                        </div>
+                        <div class="form-row">
+                            <label>Wings New:</label>
+                            <input type="number" id="Wings_New">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="equipment" class="tab-content">
+            <div class="form-grid">
+                <div class="form-group">
+                    <h3>Equipped Items</h3>
+                    <div id="equippedItems" class="equipment-list"></div>
+                    <button class="add-button" onclick="addEquippedItem()">Add Equipped Item</button>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Inventory</h3>
+                    <div id="inventoryItems" class="equipment-list"></div>
+                    <button class="add-button" onclick="addInventoryItem()">Add Inventory Item</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="feats" class="tab-content">
+            <div class="form-group">
+                <h3>Feats</h3>
+                <div id="featList" class="feat-list"></div>
+                <button class="add-button" onclick="addFeat()">Add Feat</button>
+            </div>
+        </div>
+        
+        <div id="skills" class="tab-content">
+            <div class="form-group">
+                <h3>Skills</h3>
+                <div id="skillList" class="skill-list"></div>
+                <button class="add-button" onclick="addSkill()">Add Skill</button>
+            </div>
+        </div>
+        
+        <div id="class" class="tab-content">
+            <div class="form-grid">
+                <div class="form-group">
+                    <h3>Class Information</h3>
+                    <div class="form-row">
+                        <label>Class:</label>
+                        <input type="number" id="Class" placeholder="Class ID">
+                    </div>
+                    <div class="form-row">
+                        <label>Class Level:</label>
+                        <input type="number" id="ClassLevel" min="1" max="40">
+                    </div>
+                    <div class="form-row">
+                        <label>Skill Points:</label>
+                        <input type="number" id="SkillPoints">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <h3>Level Stats</h3>
+                    <div class="form-row">
+                        <label>Epic Level:</label>
+                        <input type="number" id="EpicLevel" min="0" max="10">
+                    </div>
+                    <div class="form-row">
+                        <label>Hit Die:</label>
+                        <input type="number" id="LvlStatHitDie">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="saveStatus" class="save-status"></div>
+    </div>
+
+    <script>
+        let characterData = {};
+        
+        // Initialize with empty character data (matching red.json structure)
+        function createNewCharacter() {
+            characterData = {
+                "__data_type": "BIC ",
+                "FirstName": {"type": "cexolocstring", "value": {"0": "Red"}},
+                "LastName": {"type": "cexolocstring", "value": {"0": ""}},
+                "DisplayName": {"type": "cexostring", "value": ""},
+                "Description": {"type": "cexolocstring", "value": {"0": ""}},
+                "Age": {"type": "int", "value": 50},
+                "Gender": {"type": "byte", "value": 0},
+                "Race": {"type": "byte", "value": 106},
+                "Deity": {"type": "cexostring", "value": ""},
+                "GoodEvil": {"type": "byte", "value": 85},
+                "LawfulChaotic": {"type": "byte", "value": 85},
+                "Str": {"type": "byte", "value": 16},
+                "Dex": {"type": "byte", "value": 14},
+                "Con": {"type": "byte", "value": 12},
+                "Int": {"type": "byte", "value": 14},
+                "Wis": {"type": "byte", "value": 12},
+                "Cha": {"type": "byte", "value": 8},
+                "HitPoints": {"type": "short", "value": 6},
+                "MaxHitPoints": {"type": "short", "value": 8},
+                "CurrentHitPoints": {"type": "short", "value": 6},
+                "ArmorClass": {"type": "short", "value": 12},
+                "FortSaveThrow": {"type": "char", "value": 2},
+                "RefSaveThrow": {"type": "char", "value": 2},
+                "WillSaveThrow": {"type": "char", "value": 1},
+                "BaseAttackBonus": {"type": "byte", "value": 0},
+                "Experience": {"type": "dword", "value": 0},
+                "Gold": {"type": "dword", "value": 75},
+                "Appearance_Type": {"type": "word", "value": 0},
+                "Appearance_Head": {"type": "byte", "value": 6},
+                "Phenotype": {"type": "int", "value": 2},
+                "Portrait": {"type": "resref", "value": "po_dw_m_06_"},
+                "Color_Hair": {"type": "byte", "value": 4},
+                "Color_Skin": {"type": "byte", "value": 43},
+                "Color_Tattoo1": {"type": "byte", "value": 0},
+                "Color_Tattoo2": {"type": "byte", "value": 0},
+                "BodyPart_Neck": {"type": "byte", "value": 1},
+                "BodyPart_Torso": {"type": "byte", "value": 1},
+                "BodyPart_Belt": {"type": "byte", "value": 0},
+                "BodyPart_Pelvis": {"type": "byte", "value": 1},
+                "BodyPart_LBicep": {"type": "byte", "value": 1},
+                "BodyPart_LFArm": {"type": "byte", "value": 1},
+                "BodyPart_LFoot": {"type": "byte", "value": 1},
+                "BodyPart_LHand": {"type": "byte", "value": 1},
+                "BodyPart_LShin": {"type": "byte", "value": 1},
+                "BodyPart_LShoul": {"type": "byte", "value": 0},
+                "BodyPart_LThigh": {"type": "byte", "value": 1},
+                "BodyPart_RBicep": {"type": "byte", "value": 1},
+                "BodyPart_RFArm": {"type": "byte", "value": 1},
+                "BodyPart_RHand": {"type": "byte", "value": 1},
+                "BodyPart_RShin": {"type": "byte", "value": 1},
+                "BodyPart_RShoul": {"type": "byte", "value": 0},
+                "BodyPart_RThigh": {"type": "byte", "value": 1},
+                "BodyPart_RFoot": {"type": "byte", "value": 1},
+                "SoundSetFile": {"type": "word", "value": 216},
+                "Conversation": {"type": "resref", "value": ""},
+                "Subrace": {"type": "cexostring", "value": ""},
+                "StartingPackage": {"type": "byte", "value": 10},
+                "MClassLevUpIn": {"type": "byte", "value": 0},
+                "PregameCurrent": {"type": "short", "value": 8},
+                "Tail_New": {"type": "dword", "value": 0},
+                "Wings_New": {"type": "dword", "value": 0},
+                "FeatList": {"type": "list", "value": []},
+                "ItemList": {"type": "list", "value": []},
+                "Equip_ItemList": {"type": "list", "value": []},
+                "SkillList": {"type": "list", "value": []},
+                "ClassList": {"type": "list", "value": []}
+            };
+            
+            // Add default class structure
+            characterData.ClassList.value.push({
+                "__struct_id": 0,
+                "Class": {"type": "int", "value": 237},
+                "ClassLevel": {"type": "short", "value": 1},
+                "SkillPoints": {"type": "word", "value": 2},
+                "EpicLevel": {"type": "byte", "value": 0},
+                "LvlStatHitDie": {"type": "byte", "value": 6},
+                "MemorizedList0": {"type": "list", "value": []}
+            });
+            
+            // Add default skills
+            for (let i = 0; i < 28; i++) {
+                characterData.SkillList.value.push({
+                    "__struct_id": 0,
+                    "Rank": {"type": "byte", "value": 0}
+                });
+            }
+            
+            updateUI();
+            showSaveStatus('New character created!', 'success');
+        }
+        
+        // Load JSON file
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        characterData = JSON.parse(e.target.result);
+                        updateUI();
+                        showSaveStatus('Character loaded successfully!', 'success');
+                    } catch (error) {
+                        showSaveStatus('Error loading file: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Save JSON file
+        function saveJSON() {
+            updateDataFromUI();
+            const dataStr = JSON.stringify(characterData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'character.json';
+            link.click();
+            URL.revokeObjectURL(url);
+            showSaveStatus('Character saved successfully!', 'success');
+        }
+        
+        // Update UI from character data (handles red.json format)
+        function updateUI() {
+            // Basic info
+            document.getElementById('FirstName').value = characterData.FirstName?.value?.[0] || '';
+            document.getElementById('LastName').value = characterData.LastName?.value?.[0] || '';
+            document.getElementById('DisplayName').value = characterData.DisplayName?.value || '';
+            document.getElementById('Description').value = characterData.Description?.value?.[0] || '';
+            document.getElementById('Age').value = characterData.Age?.value || 50;
+            document.getElementById('Gender').value = characterData.Gender?.value || 0;
+            document.getElementById('Race').value = characterData.Race?.value || 106;
+            document.getElementById('Deity').value = characterData.Deity?.value || '';
+            document.getElementById('GoodEvil').value = characterData.GoodEvil?.value || 85;
+            document.getElementById('LawfulChaotic').value = characterData.LawfulChaotic?.value || 85;
+            document.getElementById('Experience').value = characterData.Experience?.value || 0;
+            document.getElementById('Gold').value = characterData.Gold?.value || 75;
+            
+            // Stats
+            document.getElementById('Str').value = characterData.Str?.value || 16;
+            document.getElementById('Dex').value = characterData.Dex?.value || 14;
+            document.getElementById('Con').value = characterData.Con?.value || 12;
+            document.getElementById('Int').value = characterData.Int?.value || 14;
+            document.getElementById('Wis').value = characterData.Wis?.value || 12;
+            document.getElementById('Cha').value = characterData.Cha?.value || 8;
+            
+            // Vitals
+            document.getElementById('HitPoints').value = characterData.HitPoints?.value || 6;
+            document.getElementById('MaxHitPoints').value = characterData.MaxHitPoints?.value || 8;
+            document.getElementById('CurrentHitPoints').value = characterData.CurrentHitPoints?.value || 6;
+            document.getElementById('ArmorClass').value = characterData.ArmorClass?.value || 12;
+            
+            // Saves
+            document.getElementById('FortSaveThrow').value = characterData.FortSaveThrow?.value || 2;
+            document.getElementById('RefSaveThrow').value = characterData.RefSaveThrow?.value || 2;
+            document.getElementById('WillSaveThrow').value = characterData.WillSaveThrow?.value || 1;
+            
+            // Combat
+            document.getElementById('BaseAttackBonus').value = characterData.BaseAttackBonus?.value || 0;
+            
+            // Appearance
+            document.getElementById('Appearance_Type').value = characterData.Appearance_Type?.value || 0;
+            document.getElementById('Appearance_Head').value = characterData.Appearance_Head?.value || 6;
+            document.getElementById('Phenotype').value = characterData.Phenotype?.value || 2;
+            document.getElementById('Portrait').value = characterData.Portrait?.value || 'po_dw_m_06_';
+            
+            // Colors
+            document.getElementById('Color_Hair').value = characterData.Color_Hair?.value || 4;
+            document.getElementById('Color_Skin').value = characterData.Color_Skin?.value || 43;
+            document.getElementById('Color_Tattoo1').value = characterData.Color_Tattoo1?.value || 0;
+            document.getElementById('Color_Tattoo2').value = characterData.Color_Tattoo2?.value || 0;
+            
+            // Body parts
+            document.getElementById('BodyPart_Neck').value = characterData.BodyPart_Neck?.value || 1;
+            document.getElementById('BodyPart_Torso').value = characterData.BodyPart_Torso?.value || 1;
+            document.getElementById('BodyPart_Belt').value = characterData.BodyPart_Belt?.value || 0;
+            document.getElementById('BodyPart_Pelvis').value = characterData.BodyPart_Pelvis?.value || 1;
+            
+            // Additional body parts from red.json
+            document.getElementById('BodyPart_LBicep').value = characterData.BodyPart_LBicep?.value || 1;
+            document.getElementById('BodyPart_LFArm').value = characterData.BodyPart_LFArm?.value || 1;
+            document.getElementById('BodyPart_LFoot').value = characterData.BodyPart_LFoot?.value || 1;
+            document.getElementById('BodyPart_LHand').value = characterData.BodyPart_LHand?.value || 1;
+            document.getElementById('BodyPart_LShin').value = characterData.BodyPart_LShin?.value || 1;
+            document.getElementById('BodyPart_LShoul').value = characterData.BodyPart_LShoul?.value || 0;
+            document.getElementById('BodyPart_LThigh').value = characterData.BodyPart_LThigh?.value || 1;
+            document.getElementById('BodyPart_RBicep').value = characterData.BodyPart_RBicep?.value || 1;
+            document.getElementById('BodyPart_RFArm').value = characterData.BodyPart_RFArm?.value || 1;
+            document.getElementById('BodyPart_RHand').value = characterData.BodyPart_RHand?.value || 1;
+            document.getElementById('BodyPart_RShin').value = characterData.BodyPart_RShin?.value || 1;
+            document.getElementById('BodyPart_RShoul').value = characterData.BodyPart_RShoul?.value || 0;
+            document.getElementById('BodyPart_RThigh').value = characterData.BodyPart_RThigh?.value || 1;
+            document.getElementById('BodyPart_RFoot').value = characterData.BodyPart_RFoot?.value || 1;
+            
+            // Additional fields from red.json
+            document.getElementById('SoundSetFile').value = characterData.SoundSetFile?.value || 216;
+            document.getElementById('Conversation').value = characterData.Conversation?.value || '';
+            document.getElementById('Subrace').value = characterData.Subrace?.value || '';
+            document.getElementById('StartingPackage').value = characterData.StartingPackage?.value || 10;
+            document.getElementById('MClassLevUpIn').value = characterData.MClassLevUpIn?.value || 0;
+            document.getElementById('PregameCurrent').value = characterData.PregameCurrent?.value || 8;
+            document.getElementById('Tail_New').value = characterData.Tail_New?.value || 0;
+            document.getElementById('Wings_New').value = characterData.Wings_New?.value || 0;
+            
+            // Update alignment displays
+            updateAlignmentDisplay('GoodEvil');
+            updateAlignmentDisplay('LawfulChaotic');
+            
+            // Lists
+            updateFeatList();
+            updateInventoryList();
+            updateEquippedItemsList();
+            updateSkillList();
+            updateClassInfo();
+        }
+        
+        // Update character data from UI (matches red.json format)
+        function updateDataFromUI() {
+            // Basic info
+            characterData.FirstName = {"type": "cexolocstring", "value": {"0": document.getElementById('FirstName').value}};
+            characterData.LastName = {"type": "cexolocstring", "value": {"0": document.getElementById('LastName').value}};
+            characterData.DisplayName = {"type": "cexostring", "value": document.getElementById('DisplayName').value};
+            characterData.Description = {"type": "cexolocstring", "value": {"0": document.getElementById('Description').value}};
+            characterData.Age = {"type": "int", "value": parseInt(document.getElementById('Age').value) || 50};
+            characterData.Gender = {"type": "byte", "value": parseInt(document.getElementById('Gender').value) || 0};
+            characterData.Race = {"type": "byte", "value": parseInt(document.getElementById('Race').value) || 106};
+            characterData.Deity = {"type": "cexostring", "value": document.getElementById('Deity').value};
+            characterData.GoodEvil = {"type": "byte", "value": parseInt(document.getElementById('GoodEvil').value) || 85};
+            characterData.LawfulChaotic = {"type": "byte", "value": parseInt(document.getElementById('LawfulChaotic').value) || 85};
+            characterData.Experience = {"type": "dword", "value": parseInt(document.getElementById('Experience').value) || 0};
+            characterData.Gold = {"type": "dword", "value": parseInt(document.getElementById('Gold').value) || 75};
+            
+            // Stats
+            characterData.Str = {"type": "byte", "value": parseInt(document.getElementById('Str').value) || 16};
+            characterData.Dex = {"type": "byte", "value": parseInt(document.getElementById('Dex').value) || 14};
+            characterData.Con = {"type": "byte", "value": parseInt(document.getElementById('Con').value) || 12};
+            characterData.Int = {"type": "byte", "value": parseInt(document.getElementById('Int').value) || 14};
+            characterData.Wis = {"type": "byte", "value": parseInt(document.getElementById('Wis').value) || 12};
+            characterData.Cha = {"type": "byte", "value": parseInt(document.getElementById('Cha').value) || 8};
+            
+            // Vitals
+            characterData.HitPoints = {"type": "short", "value": parseInt(document.getElementById('HitPoints').value) || 6};
+            characterData.MaxHitPoints = {"type": "short", "value": parseInt(document.getElementById('MaxHitPoints').value) || 8};
+            characterData.CurrentHitPoints = {"type": "short", "value": parseInt(document.getElementById('CurrentHitPoints').value) || 6};
+            characterData.ArmorClass = {"type": "short", "value": parseInt(document.getElementById('ArmorClass').value) || 12};
+            
+            // Saves
+            characterData.FortSaveThrow = {"type": "char", "value": parseInt(document.getElementById('FortSaveThrow').value) || 2};
+            characterData.RefSaveThrow = {"type": "char", "value": parseInt(document.getElementById('RefSaveThrow').value) || 2};
+            characterData.WillSaveThrow = {"type": "char", "value": parseInt(document.getElementById('WillSaveThrow').value) || 1};
+            
+            // Combat
+            characterData.BaseAttackBonus = {"type": "byte", "value": parseInt(document.getElementById('BaseAttackBonus').value) || 0};
+            
+            // Appearance
+            characterData.Appearance_Type = {"type": "word", "value": parseInt(document.getElementById('Appearance_Type').value) || 0};
+            characterData.Appearance_Head = {"type": "byte", "value": parseInt(document.getElementById('Appearance_Head').value) || 6};
+            characterData.Phenotype = {"type": "int", "value": parseInt(document.getElementById('Phenotype').value) || 2};
+            characterData.Portrait = {"type": "resref", "value": document.getElementById('Portrait').value || 'po_dw_m_06_'};
+            
+            // Colors
+            characterData.Color_Hair = {"type": "byte", "value": parseInt(document.getElementById('Color_Hair').value) || 4};
+            characterData.Color_Skin = {"type": "byte", "value": parseInt(document.getElementById('Color_Skin').value) || 43};
+            characterData.Color_Tattoo1 = {"type": "byte", "value": parseInt(document.getElementById('Color_Tattoo1').value) || 0};
+            characterData.Color_Tattoo2 = {"type": "byte", "value": parseInt(document.getElementById('Color_Tattoo2').value) || 0};
+            
+            // Body parts
+            characterData.BodyPart_Neck = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_Neck').value) || 1};
+            characterData.BodyPart_Torso = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_Torso').value) || 1};
+            characterData.BodyPart_Belt = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_Belt').value) || 0};
+            characterData.BodyPart_Pelvis = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_Pelvis').value) || 1};
+            
+            // Additional body parts from red.json
+            characterData.BodyPart_LBicep = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LBicep').value) || 1};
+            characterData.BodyPart_LFArm = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LFArm').value) || 1};
+            characterData.BodyPart_LFoot = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LFoot').value) || 1};
+            characterData.BodyPart_LHand = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LHand').value) || 1};
+            characterData.BodyPart_LShin = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LShin').value) || 1};
+            characterData.BodyPart_LShoul = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LShoul').value) || 0};
+            characterData.BodyPart_LThigh = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_LThigh').value) || 1};
+            characterData.BodyPart_RBicep = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RBicep').value) || 1};
+            characterData.BodyPart_RFArm = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RFArm').value) || 1};
+            characterData.BodyPart_RHand = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RHand').value) || 1};
+            characterData.BodyPart_RShin = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RShin').value) || 1};
+            characterData.BodyPart_RShoul = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RShoul').value) || 0};
+            characterData.BodyPart_RThigh = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RThigh').value) || 1};
+            characterData.BodyPart_RFoot = {"type": "byte", "value": parseInt(document.getElementById('BodyPart_RFoot').value) || 1};
+            
+            // Additional fields from red.json
+            characterData.SoundSetFile = {"type": "word", "value": parseInt(document.getElementById('SoundSetFile').value) || 216};
+            characterData.Conversation = {"type": "resref", "value": document.getElementById('Conversation').value || ''};
+            characterData.Subrace = {"type": "cexostring", "value": document.getElementById('Subrace').value || ''};
+            characterData.StartingPackage = {"type": "byte", "value": parseInt(document.getElementById('StartingPackage').value) || 10};
+            characterData.MClassLevUpIn = {"type": "byte", "value": parseInt(document.getElementById('MClassLevUpIn').value) || 0};
+            characterData.PregameCurrent = {"type": "short", "value": parseInt(document.getElementById('PregameCurrent').value) || 8};
+            characterData.Tail_New = {"type": "dword", "value": parseInt(document.getElementById('Tail_New').value) || 0};
+            characterData.Wings_New = {"type": "dword", "value": parseInt(document.getElementById('Wings_New').value) || 0};
+        }
+        
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+        }
+        
+        // Update alignment display
+        function updateAlignmentDisplay(alignment) {
+            const value = document.getElementById(alignment).value;
+            document.getElementById(alignment + 'Value').textContent = value;
+        }
+        
+        // Feat management
+        function updateFeatList() {
+            const container = document.getElementById('featList');
+            container.innerHTML = '';
+            
+            if (characterData.FeatList?.value) {
+                characterData.FeatList.value.forEach((feat, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.innerHTML = `
+                        <input type="number" value="${feat.Feat?.value || 0}" onchange="updateFeat(${index}, this.value)" placeholder="Feat ID">
+                        <button onclick="removeFeat(${index})">Remove</button>
+                    `;
+                    container.appendChild(item);
+                });
+            }
+        }
+        
+        function addFeat() {
+            if (!characterData.FeatList) {
+                characterData.FeatList = {"type": "list", "value": []};
+            }
+            characterData.FeatList.value.push({
+                "__struct_id": 0,
+                "Feat": {"type": "word", "value": 0}
+            });
+            updateFeatList();
+        }
+        
+        function updateFeat(index, value) {
+            characterData.FeatList.value[index].Feat.value = parseInt(value) || 0;
+        }
+        
+        function removeFeat(index) {
+            characterData.FeatList.value.splice(index, 1);
+            updateFeatList();
+        }
+        
+        // Inventory management
+        function updateInventoryList() {
+            const container = document.getElementById('inventoryItems');
+            container.innerHTML = '';
+            
+            if (characterData.ItemList?.value) {
+                characterData.ItemList.value.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'list-item';
+                    itemDiv.innerHTML = `
+                        <input type="text" value="${item.InventoryRes?.value || ''}" onchange="updateInventoryItem(${index}, this.value)" placeholder="Item ResRef">
+                        <button onclick="removeInventoryItem(${index})">Remove</button>
+                    `;
+                    container.appendChild(itemDiv);
+                });
+            }
+        }
+        
+        function addInventoryItem() {
+            if (!characterData.ItemList) {
+                characterData.ItemList = {"type": "list", "value": []};
+            }
+            characterData.ItemList.value.push({
+                "__struct_id": 0,
+                "InventoryRes": {"type": "resref", "value": ""}
+            });
+            updateInventoryList();
+        }
+        
+        function updateInventoryItem(index, value) {
+            characterData.ItemList.value[index].InventoryRes.value = value;
+        }
+        
+        function removeInventoryItem(index) {
+            characterData.ItemList.value.splice(index, 1);
+            updateInventoryList();
+        }
+        
+        // Equipped items management
+        function updateEquippedItemsList() {
+            const container = document.getElementById('equippedItems');
+            container.innerHTML = '';
+            
+            if (characterData.Equip_ItemList?.value) {
+                characterData.Equip_ItemList.value.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'list-item';
+                    itemDiv.innerHTML = `
+                        <input type="text" value="${item.EquippedRes?.value || ''}" onchange="updateEquippedItem(${index}, this.value)" placeholder="Equipped Item ResRef">
+                        <button onclick="removeEquippedItem(${index})">Remove</button>
+                    `;
+                    container.appendChild(itemDiv);
+                });
+            }
+        }
+        
+        function addEquippedItem() {
+            if (!characterData.Equip_ItemList) {
+                characterData.Equip_ItemList = {"type": "list", "value": []};
+            }
+            characterData.Equip_ItemList.value.push({
+                "__struct_id": 2,
+                "EquippedRes": {"type": "resref", "value": ""}
+            });
+            updateEquippedItemsList();
+        }
+        
+        function updateEquippedItem(index, value) {
+            characterData.Equip_ItemList.value[index].EquippedRes.value = value;
+        }
+        
+        function removeEquippedItem(index) {
+            characterData.Equip_ItemList.value.splice(index, 1);
+            updateEquippedItemsList();
+        }
+        
+        // Skill management
+        function updateSkillList() {
+            const container = document.getElementById('skillList');
+            container.innerHTML = '';
+            
+            if (characterData.SkillList?.value) {
+                characterData.SkillList.value.forEach((skill, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.innerHTML = `
+                        <input type="number" value="${skill.Rank?.value || 0}" onchange="updateSkill(${index}, this.value)" placeholder="Skill Rank" min="0" max="127">
+                        <button onclick="removeSkill(${index})">Remove</button>
+                    `;
+                    container.appendChild(item);
+                });
+            }
+        }
+        
+        function addSkill() {
+            if (!characterData.SkillList) {
+                characterData.SkillList = {"type": "list", "value": []};
+            }
+            characterData.SkillList.value.push({
+                "__struct_id": 0,
+                "Rank": {"type": "byte", "value": 0}
+            });
+            updateSkillList();
+        }
+        
+        function updateSkill(index, value) {
+            characterData.SkillList.value[index].Rank.value = parseInt(value) || 0;
+        }
+        
+        function removeSkill(index) {
+            characterData.SkillList.value.splice(index, 1);
+            updateSkillList();
+        }
+        
+        // Class info
+        function updateClassInfo() {
+            if (characterData.ClassList?.value?.[0]) {
+                const classData = characterData.ClassList.value[0];
+                document.getElementById('Class').value = classData.Class?.value || 0;
+                document.getElementById('ClassLevel').value = classData.ClassLevel?.value || 1;
+                document.getElementById('SkillPoints').value = classData.SkillPoints?.value || 0;
+                document.getElementById('EpicLevel').value = classData.EpicLevel?.value || 0;
+            }
+        }
+        
+        // Show save status
+        function showSaveStatus(message, type) {
+            const status = document.getElementById('saveStatus');
+            status.textContent = message;
+            status.className = 'save-status ' + type;
+            setTimeout(() => {
+                status.className = 'save-status';
+            }, 3000);
+        }
+        
+        // Initialize
+        createNewCharacter();
+    </script>
+</body>
+</html>
